@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Creator - Tạo Video từ HTML Animation</title>
+  <meta name="description" content="Công cụ tạo video MP4 từ tiêu đề, nội dung và hình ảnh với hiệu ứng animation">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Top Bar -->
+  <header class="top-bar" id="topBar">
+    <div class="logo">
+      <div class="logo-icon">🎬</div>
+      <h1>Video Creator</h1>
+    </div>
+    <div class="top-actions">
+      <button id="btnPreview" class="btn btn-ghost" title="Xem trước toàn bộ">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Xem trước
+      </button>
+      <button id="btnExport" class="btn btn-primary" title="Xuất video MP4">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Xuất MP4
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <!-- Left Panel -->
+    <aside class="panel left-panel" id="leftPanel">
+      <div class="panel-section scene-list-section">
+        <div class="section-header">
+          <h2>Danh sách cảnh</h2>
+          <button id="btnAddScene" class="btn btn-icon" title="Thêm cảnh mới">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
+        </div>
+        <div id="sceneList" class="scene-items"></div>
+      </div>
+
+      <div class="panel-section scene-editor-section">
+        <h2>Chỉnh sửa cảnh</h2>
+
+        <div class="form-group">
+          <label for="sceneTitle">Tiêu đề</label>
+          <input type="text" id="sceneTitle" placeholder="Nhập tiêu đề..." autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="sceneContent">Nội dung</label>
+          <textarea id="sceneContent" rows="4" placeholder="Nhập nội dung văn bản..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Hình ảnh</label>
+          <div class="image-upload" id="imageUploadArea">
+            <input type="file" id="sceneImage" accept="image/*" hidden>
+            <div class="upload-placeholder" id="uploadPlaceholder">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.5"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+              <span>Kéo thả hoặc click để chọn ảnh</span>
+            </div>
+            <img id="imagePreview" class="image-preview" hidden alt="Preview">
+            <button id="btnRemoveImage" class="btn-remove-image" hidden title="Xóa ảnh">✕</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Màu nền</label>
+          <div class="color-row">
+            <input type="color" id="sceneBgColor1" value="#0f0c29">
+            <input type="color" id="sceneBgColor2" value="#302b63">
+            <label class="checkbox-label">
+              <input type="checkbox" id="sceneBgGradient" checked> Gradient
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="showAccent" checked> Đường accent
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="textPosition">Vị trí text</label>
+          <select id="textPosition">
+            <option value="top" selected>Trên (căn lề trên)</option>
+            <option value="center">Giữa</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sceneDuration">Thời lượng: <span id="durationValue">5</span>s</label>
+          <input type="range" id="sceneDuration" value="5" min="2" max="20" step="0.5">
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Preview -->
+    <section class="preview-area" id="previewArea">
+      <div class="canvas-wrapper">
+        <div class="canvas-container" id="canvasContainer">
+          <canvas id="previewCanvas" width="1080" height="1920"></canvas>
+        </div>
+      </div>
+      <div class="playback-controls">
+        <button id="btnPlay" class="btn btn-control" title="Phát / Tạm dừng">
+          <svg id="playIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="pauseIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button id="btnStop" class="btn btn-control" title="Dừng">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+        </button>
+        <div class="progress-bar" id="progressBar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <span id="timeDisplay" class="time-display">0:00 / 0:00</span>
+      </div>
+    </section>
+
+    <!-- Right Panel -->
+    <aside class="panel right-panel" id="rightPanel">
+      <div class="panel-section">
+        <h2>Hiệu ứng chuyển động</h2>
+
+        <div class="form-group">
+          <label for="titleAnimation">Hiệu ứng tiêu đề</label>
+          <select id="titleAnimation">
+            <option value="fadeIn">Mờ dần</option>
+            <option value="slideUp" selected>Trượt lên</option>
+            <option value="slideDown">Trượt xuống</option>
+            <option value="slideLeft">Trượt từ phải</option>
+            <option value="scaleIn">Phóng to</option>
+            <option value="typewriter">Đánh máy</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="contentAnimation">Hiệu ứng nội dung</label>
+          <select id="contentAnimation">
+            <option value="fadeIn" selected>Mờ dần</option>
+            <option value="slideUp">Trượt lên</option>
+            <option value="slideDown">Trượt xuống</option>
+            <option value="slideLeft">Trượt từ phải</option>
+            <option value="typewriter">Đánh máy</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="imageAnimation">Hiệu ứng hình ảnh</label>
+          <select id="imageAnimation">
+            <option value="fadeIn" selected>Mờ dần</option>
+            <option value="scaleIn">Phóng to</option>
+            <option value="slideUp">Trượt lên</option>
+            <option value="slideLeft">Trượt từ phải</option>
+            <option value="kenBurns">Ken Burns</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sceneTransition">Chuyển cảnh</label>
+          <select id="sceneTransition">
+            <option value="fade" selected>Fade</option>
+            <option value="slideLeft">Trượt trái</option>
+            <option value="slideUp">Trượt lên</option>
+            <option value="none">Không hiệu ứng</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Kiểu chữ</h2>
+
+        <div class="form-group">
+          <label for="titleFont">Font tiêu đề</label>
+          <select id="titleFont">
+            <option value="Be Vietnam Pro" selected>Be Vietnam Pro</option>
+            <option value="Inter">Inter</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cỡ tiêu đề: <span id="titleSizeVal">60</span>px</label>
+          <input type="range" id="titleSize" min="24" max="120" value="60">
+        </div>
+        <div class="form-group">
+          <label for="titleColor">Màu tiêu đề</label>
+          <input type="color" id="titleColor" value="#ffffff">
+        </div>
+
+        <div class="form-group">
+          <label for="contentFont">Font nội dung</label>
+          <select id="contentFont">
+            <option value="Inter" selected>Inter</option>
+            <option value="Be Vietnam Pro">Be Vietnam Pro</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cỡ nội dung: <span id="contentSizeVal">30</span>px</label>
+          <input type="range" id="contentSize" min="14" max="60" value="30">
+        </div>
+        <div class="form-group">
+          <label for="contentColor">Màu nội dung</label>
+          <input type="color" id="contentColor" value="#c8c8e0">
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Cài đặt xuất</h2>
+        <div class="form-group">
+          <label for="exportResolution">Độ phân giải</label>
+          <select id="exportResolution">
+            <option value="1080x1920" selected>1080×1920 (TikTok/Reels)</option>
+            <option value="1080x1080">1080×1080 (Vuông)</option>
+            <option value="1920x1080">1920×1080 (Ngang Full HD)</option>
+            <option value="1280x720">1280×720 (Ngang HD)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="exportFPS">FPS</label>
+          <select id="exportFPS">
+            <option value="24">24</option>
+            <option value="30" selected>30</option>
+            <option value="60">60</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Export Modal -->
+  <div id="exportModal" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="exportModalTitle">Đang xuất video...</h2>
+      </div>
+      <div class="modal-body">
+        <div class="export-progress-wrapper">
+          <div class="export-progress-track">
+            <div id="exportProgressBar" class="export-progress-bar"></div>
+          </div>
+          <span id="exportPercent">0%</span>
+        </div>
+        <p id="exportStatus" class="export-status">Đang chuẩn bị...</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnCancelExport" class="btn btn-ghost">Hủy</button>
+        <a id="btnDownload" class="btn btn-primary" hidden download="video.mp4">Tải về</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.min.js"></script>
+  <script src="engine.js"></script>
+  <script src="exporter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
