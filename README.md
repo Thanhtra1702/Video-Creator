@@ -79,3 +79,11 @@ AI Video/
 ├── app.js          # Logic ứng dụng, state management
 └── README.md       # File tài liệu
 ```
+
+## Nhật ký Cập nhật (Changelog)
+
+### [24/05/2026] - Sửa lỗi kết xuất & Đồng bộ hóa Layout
+- 🐛 **Sửa lỗi ReferenceError**: Khắc phục lỗi `hasTitle is not defined` trên chế độ dọc (`_vertical`) khiến tiến trình vẽ canvas bị ngắt quãng giữa chừng, giải quyết triệt để lỗi không hiển thị nội dung và hình ảnh.
+- 📐 **Đồng bộ hóa Giao diện Ngang**: Nâng cấp hàm `_horizontal` để hỗ trợ hiển thị cả **3 dòng tiêu đề độc lập** (`titleLine1`, `titleLine2`, `titleLine3`) tương tự giao diện dọc, sửa lỗi tiêu đề bị trống/biến mất khi người dùng chọn độ phân giải nằm ngang.
+- 🧹 **Tối ưu dọn dẹp**: Xóa bỏ các thuộc tính bị khai báo trùng lặp trong hàm vẽ tiêu đề giúp tối ưu hóa hiệu năng render canvas.
+- 🔄 **Bypass Cache**: Thêm hậu tố phiên bản `?v=4` cho các tệp script trong `index.html` để đảm bảo trình duyệt luôn tải phiên bản hoạt động tốt nhất.

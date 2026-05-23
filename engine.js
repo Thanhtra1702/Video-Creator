@@ -104,6 +104,18 @@ class AnimationEngine {
   renderFrame(time) {
     const { ctx, canvas } = this;
     const W = canvas.width, H = canvas.height;
+    
+    // Force reset canvas state to prevent ANY leakage from previous frames
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.filter = 'none';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
     ctx.clearRect(0, 0, W, H);
     const total = this.getTotalDuration();
     if (total === 0) { this._empty(ctx, W, H); return; }
@@ -114,12 +126,17 @@ class AnimationEngine {
     const fade = Math.min(localTime / 0.5, (dur - localTime) / 0.5, 1);
 
     ctx.save();
-    ctx.globalAlpha = AnimationEngine.ease(Math.max(0, fade));
-    this._bg(ctx, scene, W, H);
+    try {
+      ctx.globalAlpha = AnimationEngine.ease(Math.max(0, fade));
+      this._bg(ctx, scene, W, H);
 
-    if (this.isVertical()) this._vertical(ctx, scene, localTime, W, H);
-    else this._horizontal(ctx, scene, localTime, W, H);
-    ctx.restore();
+      if (this.isVertical()) this._vertical(ctx, scene, localTime, W, H);
+      else this._horizontal(ctx, scene, localTime, W, H);
+    } catch (err) {
+      console.error("Lỗi khi dựng khung hình:", err);
+    } finally {
+      ctx.restore();
+    }
   }
 
   _empty(ctx, W, H) {
@@ -219,19 +236,23 @@ class AnimationEngine {
     // Draw title lines
     const t0 = scene.titleDelay != null ? scene.titleDelay : 0.3;
     const tDur = scene.titleAnimDur != null ? scene.titleAnimDur : 0.7;
-    if (titleLines.length) {
+    const hasTitle = titleLines.length > 0;
+    if (hasTitle) {
       for (const tl of titleLines) {
         this._renderTitleLine(ctx, scene, lt, {
           lines: tl.wrapped, fs: tl.fs, color: tl.color, align: tl.align,
           anim: scene.titleAnimation || 'slideUp', t0, dur: tDur,
-          lh: tl.lh, y: textY, cx: W / 2, maxW, pad,
+          lh: tl.lh, y: textY, cx: W / 2 + (scene.textOffsetX || 0), maxW, pad,
+          ox: scene.textOffsetX || 0, oy: scene.textOffsetY || 0,
         });
         textY += tl.wrapped.length * tl.lh;
       }
     }
 
-    if (scene.showAccent && titleLines.length) {
-      this._accentLine(ctx, scene, lt, W / 2, textY + 6, maxW * 0.3);
+    if (scene.showAccent && hasTitle) {
+      const aOx = scene.accentOffsetX || 0;
+      const aOy = scene.accentOffsetY || 0;
+      this._accentLine(ctx, scene, lt, W / 2 + (scene.textOffsetX || 0) + aOx, textY + 6 + aOy, maxW * 0.3);
       textY += accentH;
     }
 
@@ -240,13 +261,14 @@ class AnimationEngine {
     const cDur = scene.contentAnimDur != null ? scene.contentAnimDur : 0.8;
     if (scene.content) {
       const fwContent = scene.contentItalic ? 'italic 400' : '400';
-      this._centeredText(ctx, scene, lt, {
+      this._renderContent(ctx, scene, lt, {
         text: scene.content, lines: cLines, fs: cFS, fw: fwContent,
         ff: scene.contentFont || 'Inter', color: scene.contentColor || '#c8c8e0',
         anim: scene.contentAnimation || 'fadeIn', t0: c0, dur: cDur,
-        lh: cLineH, y: textY + tcGap, cx: W / 2, maxW, shadow: false,
+        lh: cLineH, y: textY + tcGap, cx: W / 2 + (scene.textOffsetX || 0), maxW, shadow: false,
+        align: scene.contentAlign || 'center',
+        ox: scene.textOffsetX || 0, oy: scene.textOffsetY || 0,
       });
-      textY += tcGap + cH;
     }
 
     // Non-fullscreen image
@@ -264,16 +286,22 @@ class AnimationEngine {
     const a = this.getAnim(scene.imageAnimation || 'fadeIn', p);
     if (a.op <= 0) return;
     const img = scene.imageObj;
-    const scale = (scene.imageScale || 100) / 100;
-    const ox = scene.imageOffsetX || 0;
-    const oy = scene.imageOffsetY || 0;
-    const s = Math.max(W / img.width, H / img.height) * scale;
+    if (!img || !img.width || !img.height) return;
     ctx.save();
-    ctx.globalAlpha *= a.op;
-    ctx.drawImage(img, (W - img.width * s) / 2 + ox, (H - img.height * s) / 2 + oy, img.width * s, img.height * s);
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.restore();
+    try {
+      const scale = (scene.imageScale || 100) / 100;
+      const ox = scene.imageOffsetX || 0;
+      const oy = scene.imageOffsetY || 0;
+      const s = Math.max(W / img.width, H / img.height) * scale;
+      ctx.globalAlpha *= a.op;
+      ctx.drawImage(img, (W - img.width * s) / 2 + ox, (H - img.height * s) / 2 + oy, img.width * s, img.height * s);
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0, 0, W, H);
+    } catch (e) {
+      console.warn("Lỗi vẽ ảnh nền:", e);
+    } finally {
+      ctx.restore();
+    }
   }
 
   _positionedImage(ctx, scene, lt, W, H, pos) {
@@ -282,26 +310,33 @@ class AnimationEngine {
     const a = this.getAnim(scene.imageAnimation || 'fadeIn', p);
     if (a.op <= 0) return;
     const img = scene.imageObj;
-    const scale = (scene.imageScale || 100) / 100;
-    const ox = scene.imageOffsetX || 0;
-    const oy = scene.imageOffsetY || 0;
-    const maxImgW = W * 0.84;
-    const maxImgH = H * 0.4;
-    let iW = Math.min(img.width, maxImgW) * scale;
-    let iH = iW * (img.height / img.width);
-    if (iH > maxImgH) { iH = maxImgH; iW = iH * (img.width / img.height); }
-    const iX = (W - iW) / 2 + ox;
-    let iY;
-    if (pos === 'top') iY = H * 0.06 + oy;
-    else if (pos === 'bottom') iY = H * 0.88 - iH + oy;
-    else iY = (H - iH) / 2 + oy;
-    ctx.save(); ctx.globalAlpha *= a.op;
-    ctx.translate(iX + iW / 2 + a.ox, iY + iH / 2 + a.oy);
-    ctx.scale(a.sc, a.sc);
-    ctx.beginPath(); ctx.roundRect(-iW / 2, -iH / 2, iW, iH, 20); ctx.clip();
-    ctx.drawImage(img, -iW / 2, -iH / 2, iW, iH);
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.restore();
+    if (!img.width || !img.height) return;
+    ctx.save();
+    try {
+      const scale = (scene.imageScale || 100) / 100;
+      const ox = scene.imageOffsetX || 0;
+      const oy = scene.imageOffsetY || 0;
+      const maxImgW = W * 0.84;
+      const maxImgH = H * 0.4;
+      let iW = Math.min(img.width, maxImgW) * scale;
+      let iH = iW * (img.height / img.width);
+      if (iH > maxImgH) { iH = maxImgH; iW = iH * (img.width / img.height); }
+      const iX = (W - iW) / 2 + ox;
+      let iY;
+      if (pos === 'top') iY = H * 0.06 + oy;
+      else if (pos === 'bottom') iY = H * 0.88 - iH + oy;
+      else iY = (H - iH) / 2 + oy;
+      ctx.globalAlpha *= a.op;
+      ctx.translate(iX + iW / 2 + a.ox, iY + iH / 2 + a.oy);
+      ctx.scale(a.sc, a.sc);
+      ctx.beginPath(); ctx.roundRect(-iW / 2, -iH / 2, iW, iH, 20); ctx.clip();
+      ctx.drawImage(img, -iW / 2, -iH / 2, iW, iH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.stroke();
+    } catch (e) {
+      console.warn("Lỗi vẽ ảnh positioned:", e);
+    } finally {
+      ctx.restore();
+    }
   }
 
   _vImage(ctx, scene, lt, W, H, topY, botY) {
@@ -310,22 +345,29 @@ class AnimationEngine {
     const a = this.getAnim(scene.imageAnimation || 'fadeIn', p);
     if (a.op <= 0) return;
     const img = scene.imageObj;
-    const scale = (scene.imageScale || 100) / 100;
-    const ox = scene.imageOffsetX || 0;
-    const oy = scene.imageOffsetY || 0;
-    const maxImgW = W * 0.84;
-    const maxImgH = Math.min(botY - topY, H * 0.45);
-    let iW = Math.min(img.width, maxImgW) * scale;
-    let iH = iW * (img.height / img.width);
-    if (iH > maxImgH) { iH = maxImgH; iW = iH * (img.width / img.height); }
-    const iX = (W - iW) / 2 + ox, iY = topY + oy;
-    ctx.save(); ctx.globalAlpha *= a.op;
-    ctx.translate(iX + iW / 2 + a.ox, iY + iH / 2 + a.oy);
-    ctx.scale(a.sc, a.sc);
-    ctx.beginPath(); ctx.roundRect(-iW / 2, -iH / 2, iW, iH, 20); ctx.clip();
-    ctx.drawImage(img, -iW / 2, -iH / 2, iW, iH);
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.restore();
+    if (!img.width || !img.height) return;
+    ctx.save();
+    try {
+      const scale = (scene.imageScale || 100) / 100;
+      const ox = scene.imageOffsetX || 0;
+      const oy = scene.imageOffsetY || 0;
+      const maxImgW = W * 0.84;
+      const maxImgH = Math.min(botY - topY, H * 0.45);
+      let iW = Math.min(img.width, maxImgW) * scale;
+      let iH = iW * (img.height / img.width);
+      if (iH > maxImgH) { iH = maxImgH; iW = iH * (img.width / img.height); }
+      const iX = (W - iW) / 2 + ox, iY = topY + oy;
+      ctx.globalAlpha *= a.op;
+      ctx.translate(iX + iW / 2 + a.ox, iY + iH / 2 + a.oy);
+      ctx.scale(a.sc, a.sc);
+      ctx.beginPath(); ctx.roundRect(-iW / 2, -iH / 2, iW, iH, 20); ctx.clip();
+      ctx.drawImage(img, -iW / 2, -iH / 2, iW, iH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.stroke();
+    } catch (e) {
+      console.warn("Lỗi vẽ ảnh vImage:", e);
+    } finally {
+      ctx.restore();
+    }
   }
 
   _renderTitleLine(ctx, scene, lt, o) {
@@ -334,57 +376,61 @@ class AnimationEngine {
     const a = this.getAnim(o.anim, p, plainText.length);
     if (a.op <= 0) return;
     ctx.save();
-    ctx.globalAlpha *= a.op;
-    ctx.translate(a.ox, a.oy);
-    if (a.sc !== 1) {
-      const cy = o.y + (o.lines.length * o.lh) / 2;
-      ctx.translate(o.cx, cy); ctx.scale(a.sc, a.sc); ctx.translate(-o.cx, -cy);
-    }
-    if (a.rot) {
-      const cy = o.y + (o.lines.length * o.lh) / 2;
-      ctx.translate(o.cx, cy); ctx.rotate(a.rot * Math.PI / 180); ctx.translate(-o.cx, -cy);
-    }
-    if (a.scaleY != null && a.scaleY !== 1) {
-      const cy = o.y + (o.lines.length * o.lh) / 2;
-      ctx.translate(o.cx, cy); ctx.scale(1, a.scaleY); ctx.translate(-o.cx, -cy);
-    }
-    const hlColor = scene.highlightColor || '#d4622b';
-    ctx.textBaseline = 'top';
-    const font = scene.titleFont || 'Be Vietnam Pro';
-    let gci = 0;
-    for (let i = 0; i < o.lines.length; i++) {
-      const ly = o.y + i * o.lh;
-      const segs = this.parseRichSegments(o.lines[i]);
-      // Calculate total line width for alignment
-      let totalW = 0;
-      for (const seg of segs) {
-        ctx.font = `800 ${o.fs}px "${font}"`;
-        totalW += ctx.measureText(seg.text).width;
+    try {
+      ctx.globalAlpha *= a.op;
+      ctx.translate(a.ox + (o.ox || 0), a.oy + (o.oy || 0));
+      if (a.sc !== 1) {
+        const cy = o.y + (o.lines.length * o.lh) / 2;
+        ctx.translate(o.cx, cy); ctx.scale(a.sc, a.sc); ctx.translate(-o.cx, -cy);
       }
-      let dx;
-      if (o.align === 'left') dx = o.pad;
-      else if (o.align === 'right') dx = o.cx * 2 - o.pad - totalW;
-      else dx = o.cx - totalW / 2;
-      for (const seg of segs) {
-        ctx.font = `800 ${o.fs}px "${font}"`;
-        let dt = seg.text;
-        if (a.chars !== undefined) {
-          const avail = a.chars - gci;
-          if (avail <= 0) { gci += seg.text.length; continue; }
-          dt = seg.text.substring(0, Math.min(seg.text.length, avail));
-        }
-        ctx.fillStyle = seg.hl ? hlColor : o.color;
-        if (seg.hl) {
-          ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-        } else {
-          ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
-        }
-        ctx.fillText(dt, dx, ly);
-        dx += ctx.measureText(seg.text).width;
-        gci += seg.text.length;
+      if (a.rot) {
+        const cy = o.y + (o.lines.length * o.lh) / 2;
+        ctx.translate(o.cx, cy); ctx.rotate(a.rot * Math.PI / 180); ctx.translate(-o.cx, -cy);
       }
+      if (a.scaleY != null && a.scaleY !== 1) {
+        const cy = o.y + (o.lines.length * o.lh) / 2;
+        ctx.translate(o.cx, cy); ctx.scale(1, a.scaleY); ctx.translate(-o.cx, -cy);
+      }
+      const hlColor = scene.highlightColor || '#d4622b';
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'left';
+      const font = scene.titleFont || 'Be Vietnam Pro';
+      let gci = 0;
+      for (let i = 0; i < o.lines.length; i++) {
+        const ly = o.y + i * o.lh;
+        const segs = this.parseRichSegments(o.lines[i]);
+        // Calculate total line width for alignment
+        let totalW = 0;
+        for (const seg of segs) {
+          ctx.font = `800 ${o.fs}px "${font}"`;
+          totalW += ctx.measureText(seg.text).width;
+        }
+        let dx;
+        if (o.align === 'left') dx = o.pad;
+        else if (o.align === 'right') dx = o.cx * 2 - o.pad - totalW;
+        else dx = o.cx - totalW / 2;
+        for (const seg of segs) {
+          ctx.font = `800 ${o.fs}px "${font}"`;
+          let dt = seg.text;
+          if (a.chars !== undefined) {
+            const avail = a.chars - gci;
+            if (avail <= 0) { gci += seg.text.length; continue; }
+            dt = seg.text.substring(0, Math.min(seg.text.length, avail));
+          }
+          ctx.fillStyle = seg.hl ? hlColor : o.color;
+          if (seg.hl) {
+            ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+          } else {
+            ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+          }
+          ctx.fillText(dt, dx, ly);
+          dx += ctx.measureText(seg.text).width;
+          gci += seg.text.length;
+        }
+      }
+    } finally {
+      ctx.restore();
     }
-    ctx.restore();
   }
 
 
@@ -393,58 +439,104 @@ class AnimationEngine {
   _accentLine(ctx, scene, lt, cx, y, w) {
     const p = AnimationEngine.ease(Math.max(0, Math.min(1, (lt - 0.8) / 0.6)));
     if (p <= 0) return;
-    ctx.save(); ctx.globalAlpha *= p;
-    const color = scene.highlightColor || scene.titleLine1Color || '#ffffff';
     const drawW = w * p;
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.roundRect(cx - drawW/2, y, drawW, 6, 3); ctx.fill();
-    ctx.restore();
+    ctx.save();
+    try {
+      ctx.globalAlpha *= p;
+      ctx.fillStyle = scene.highlightColor || scene.titleLine1Color || '#ffffff';
+      ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.roundRect(cx - drawW/2, y, drawW, 6, 3); ctx.fill();
+    } finally {
+      ctx.restore();
+    }
   }
 
   /* --- Centered text rendering --- */
-  _centeredText(ctx, scene, lt, o) {
+  /* --- Content text rendering with custom alignment & highlight support --- */
+  _renderContent(ctx, scene, lt, o) {
     const p = Math.max(0, Math.min(1, (lt - o.t0) / o.dur));
     const a = this.getAnim(o.anim, p, o.text.length);
     if (a.op <= 0) return;
 
     ctx.save();
-    ctx.globalAlpha *= a.op;
-    ctx.translate(a.ox, a.oy);
+    try {
+      ctx.globalAlpha *= a.op;
+      ctx.translate(a.ox + (o.ox || 0), a.oy + (o.oy || 0));
 
-    if (a.sc !== 1) {
-      const centerY = o.y + (o.lines.length * o.lh) / 2;
-      ctx.translate(o.cx, centerY);
-      ctx.scale(a.sc, a.sc);
-      ctx.translate(-o.cx, -centerY);
-    }
+      if (a.sc !== 1) {
+        const centerY = o.y + (o.lines.length * o.lh) / 2;
+        ctx.translate(o.cx, centerY);
+        ctx.scale(a.sc, a.sc);
+        ctx.translate(-o.cx, -centerY);
+      }
 
-    if (o.shadow) {
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 12;
-      ctx.shadowOffsetY = 4;
-    }
+      if (o.shadow) {
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
+      }
 
-    ctx.font = `${o.fw} ${o.fs}px "${o.ff}"`;
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = o.color;
-
-    if (a.chars !== undefined) {
-      // Typewriter
+      ctx.font = `${o.fw} ${o.fs}px "${o.ff}"`;
+      ctx.textBaseline = 'top';
       ctx.textAlign = 'left';
-      const startX = o.cx - o.maxW / 2;
-      let cc = 0;
+      const hlColor = scene.highlightColor || '#d4622b';
+      const pad = o.cx - o.maxW / 2;
+      const align = o.align || 'center';
+
+      let gci = 0;
       for (let i = 0; i < o.lines.length; i++) {
-        const vis = Math.max(0, Math.min(o.lines[i].length, a.chars - cc));
-        if (vis > 0) ctx.fillText(o.lines[i].substring(0, vis), startX, o.y + i * o.lh);
-        cc += o.lines[i].length;
+        const ly = o.y + i * o.lh;
+        const segs = this.parseRichSegments(o.lines[i]);
+        
+        // Calculate total line width for alignment
+        let totalW = 0;
+        for (const seg of segs) {
+          const weight = seg.hl ? '700' : o.fw;
+          ctx.font = `${weight} ${o.fs}px "${o.ff}"`;
+          totalW += ctx.measureText(seg.text).width;
+        }
+
+        let dx;
+        if (align === 'left') {
+          dx = pad;
+        } else if (align === 'right') {
+          dx = o.cx * 2 - pad - totalW;
+        } else {
+          dx = o.cx - totalW / 2;
+        }
+
+        for (const seg of segs) {
+          const weight = seg.hl ? '700' : o.fw;
+          ctx.font = `${weight} ${o.fs}px "${o.ff}"`;
+          let dt = seg.text;
+          
+          if (a.chars !== undefined) {
+            const avail = a.chars - gci;
+            if (avail <= 0) {
+              gci += seg.text.length;
+              continue;
+            }
+            dt = seg.text.substring(0, Math.min(seg.text.length, avail));
+          }
+
+          ctx.fillStyle = seg.hl ? hlColor : o.color;
+          if (seg.hl) {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+          } else if (o.shadow) {
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 4;
+          }
+          
+          ctx.fillText(dt, dx, ly);
+          dx += ctx.measureText(seg.text).width;
+          gci += seg.text.length;
+        }
       }
-    } else {
-      for (let i = 0; i < o.lines.length; i++) {
-        ctx.fillText(o.lines[i], o.cx, o.y + i * o.lh);
-      }
+    } finally {
+      ctx.restore();
     }
-    ctx.restore();
   }
 
   /* ========== HORIZONTAL LAYOUT ========== */
@@ -452,47 +544,69 @@ class AnimationEngine {
     if (scene.imageObj) this._hImage(ctx, scene, lt, W, H);
     const hasImg = !!scene.imageObj;
     const maxW = hasImg ? W*0.44 : W*0.75;
-    const startX = W * 0.08;
+    const startX = W * 0.08 + (scene.textOffsetX || 0);
+    const textY = (scene.textOffsetY || 0);
 
-    let curY = 0;
+    // Measure title lines
+    const titleLines = [];
+    for (let i = 1; i <= 3; i++) {
+      const txt = scene['titleLine' + i] || '';
+      if (!txt) continue;
+      const fs = scene['titleLine' + i + 'Size'] || 60;
+      ctx.font = `800 ${fs}px "${scene.titleFont || 'Be Vietnam Pro'}"`;
+      const wrapped = this.wrapText(ctx, txt, maxW);
+      const lh = fs * 1.25;
+      titleLines.push({ text: txt, wrapped, color: scene['titleLine' + i + 'Color'] || '#fff', fs, lh });
+    }
+    const tH = titleLines.reduce((s, tl) => s + tl.wrapped.length * tl.lh, 0);
 
-    // Title
-    if (scene.title) {
-      const fs = scene.titleSize||60;
-      ctx.font = `800 ${fs}px "${scene.titleFont||'Be Vietnam Pro'}"`;
-      const lines = this.wrapText(ctx, scene.title, maxW);
-      const lh = fs * 1.2, totalH = lines.length * lh;
-      let sy = scene.content ? H*0.22 + curY : (H-totalH)/2;
-      this._richTextH(ctx, scene, lt, {
-        lines, fs, fw:'800', ff:scene.titleFont||'Be Vietnam Pro',
-        color:scene.titleColor||'#fff', anim:scene.titleAnimation||'slideUp',
-        t0:0.3, dur:0.7, lh, y:sy, x:startX,
-        hlColor:scene.highlightColor||'#ff6b35', shadow:true,
-        text: scene.title,
-      });
+    const cFS = scene.contentSize || 30;
+    ctx.font = `400 ${cFS}px "${scene.contentFont || 'Inter'}"`;
+    const cLines = scene.content ? this.wrapText(ctx, scene.content, maxW) : [];
+    const cLineH = cFS * 1.6;
+    const cH = cLines.length * cLineH;
 
-      if (scene.showAccent) {
-        this._accentLineH(ctx, scene, lt, startX, sy+totalH+8, maxW*0.25);
+    const accentH = scene.showAccent && titleLines.length ? 20 : 0;
+    const tcGap = (titleLines.length && scene.content) ? 30 : 0;
+    const totalTextH = tH + accentH + tcGap + cH;
+
+    let sy = (H - totalTextH) / 2 + textY;
+    sy = Math.max(H * 0.1, sy);
+
+    // Draw title lines
+    const t0 = scene.titleDelay != null ? scene.titleDelay : 0.3;
+    const tDur = scene.titleAnimDur != null ? scene.titleAnimDur : 0.7;
+    const hasTitle = titleLines.length > 0;
+    if (hasTitle) {
+      for (const tl of titleLines) {
+        this._richTextH(ctx, scene, lt, {
+          lines: tl.wrapped, fs: tl.fs, fw: '800', ff: scene.titleFont || 'Be Vietnam Pro',
+          color: tl.color, anim: scene.titleAnimation || 'slideUp',
+          t0, dur: tDur, lh: tl.lh, y: sy, x: startX,
+          hlColor: scene.highlightColor || '#ff6b35', shadow: true,
+          text: tl.text,
+          ox: scene.textOffsetX || 0, oy: scene.textOffsetY || 0,
+        });
+        sy += tl.wrapped.length * tl.lh;
       }
     }
 
+    if (scene.showAccent && hasTitle) {
+      this._accentLineH(ctx, scene, lt, startX, sy + 8, maxW * 0.25);
+      sy += accentH;
+    }
+
     // Content
+    const c0 = scene.contentDelay != null ? scene.contentDelay : 0.9;
+    const cDur = scene.contentAnimDur != null ? scene.contentAnimDur : 0.8;
     if (scene.content) {
-      const fs = scene.contentSize||30;
-      ctx.font = `400 ${fs}px "${scene.contentFont||'Inter'}"`;
-      const lines = this.wrapText(ctx, scene.content, maxW);
-      const titleFS = scene.titleSize||60;
-      ctx.font = `800 ${titleFS}px "${scene.titleFont||'Be Vietnam Pro'}"`;
-      const tLines = scene.title ? this.wrapText(ctx, scene.title, maxW) : [];
-      const tH = tLines.length * titleFS * 1.2;
-      ctx.font = `400 ${fs}px "${scene.contentFont||'Inter'}"`;
-      let sy = scene.title ? H*0.22+curY+tH+30+(scene.showAccent?20:0) : H*0.3;
       this._richTextH(ctx, scene, lt, {
-        lines, fs, fw:'400', ff:scene.contentFont||'Inter',
-        color:scene.contentColor||'#c8c8e0', anim:scene.contentAnimation||'fadeIn',
-        t0:0.9, dur:0.8, lh:fs*1.6, y:sy, x:startX,
-        hlColor:scene.highlightColor||'#ff6b35', shadow:false,
+        lines: cLines, fs: cFS, fw: '400', ff: scene.contentFont || 'Inter',
+        color: scene.contentColor || '#c8c8e0', anim: scene.contentAnimation || 'fadeIn',
+        t0: c0, dur: cDur, lh: cLineH, y: sy + tcGap, x: startX,
+        hlColor: scene.highlightColor || '#ff6b35', shadow: false,
         text: scene.content,
+        ox: scene.textOffsetX || 0, oy: scene.textOffsetY || 0,
       });
     }
   }
@@ -512,11 +626,15 @@ class AnimationEngine {
       if(iH>H*0.75){iH=H*0.75;iW=iH*(img.width/img.height);}
       iX=(W-iW)/2; iY=(H-iH)/2;
     }
-    ctx.save(); ctx.globalAlpha*=a.op;
-    ctx.translate(iX+iW/2+a.ox,iY+iH/2+a.oy); ctx.scale(a.sc,a.sc);
-    ctx.beginPath(); ctx.roundRect(-iW/2,-iH/2,iW,iH,16); ctx.clip();
-    ctx.drawImage(img,-iW/2,-iH/2,iW,iH);
-    ctx.restore();
+    ctx.save();
+    try {
+      ctx.globalAlpha*=a.op;
+      ctx.translate(iX+iW/2+a.ox,iY+iH/2+a.oy); ctx.scale(a.sc,a.sc);
+      ctx.beginPath(); ctx.roundRect(-iW/2,-iH/2,iW,iH,16); ctx.clip();
+      ctx.drawImage(img,-iW/2,-iH/2,iW,iH);
+    } finally {
+      ctx.restore();
+    }
   }
 
   /* --- Left-aligned rich text for horizontal --- */
@@ -525,47 +643,60 @@ class AnimationEngine {
     const plain = o.text.replace(/\*/g,'');
     const a = this.getAnim(o.anim, p, plain.length);
     if (a.op <= 0) return;
-    ctx.save(); ctx.globalAlpha *= a.op;
-    ctx.translate(a.ox, a.oy);
-    if (o.shadow) { ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=10; ctx.shadowOffsetY=3; }
-    ctx.textBaseline = 'top';
-    let gci = 0;
-    for (let i = 0; i < o.lines.length; i++) {
-      const ly = o.y + i * o.lh;
-      const segs = this.parseRichSegments(o.lines[i]);
-      let dx = o.x;
-      for (const seg of segs) {
-        const sfs = seg.hl ? Math.round(o.fs*1.05) : o.fs;
-        ctx.font = `${seg.hl?'700':o.fw} ${sfs}px "${o.ff}"`;
-        let dt = seg.text;
-        if (a.chars !== undefined) {
-          const avail = a.chars - gci;
-          if (avail <= 0) { gci += seg.text.length; continue; }
-          dt = seg.text.substring(0, Math.min(seg.text.length, avail));
+    ctx.save();
+    try {
+      ctx.globalAlpha *= a.op;
+      ctx.translate(a.ox + (o.ox || 0), a.oy + (o.oy || 0));
+      if (o.shadow) { ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=10; ctx.shadowOffsetY=3; }
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'left';
+      let gci = 0;
+      for (let i = 0; i < o.lines.length; i++) {
+        const ly = o.y + i * o.lh;
+        const segs = this.parseRichSegments(o.lines[i]);
+        let dx = o.x;
+        for (const seg of segs) {
+          const sfs = seg.hl ? Math.round(o.fs*1.05) : o.fs;
+          ctx.font = `${seg.hl?'700':o.fw} ${sfs}px "${o.ff}"`;
+          let dt = seg.text;
+          if (a.chars !== undefined) {
+            const avail = a.chars - gci;
+            if (avail <= 0) { gci += seg.text.length; continue; }
+            dt = seg.text.substring(0, Math.min(seg.text.length, avail));
+          }
+          const sw = ctx.measureText(dt).width;
+          if (seg.hl && dt.length > 0) {
+            ctx.save(); ctx.shadowBlur=0;
+            ctx.fillStyle=o.hlColor; ctx.globalAlpha*=0.92;
+            ctx.beginPath(); ctx.roundRect(dx-6,ly-3,sw+12,sfs*1.2+6,6); ctx.fill();
+            ctx.restore();
+            ctx.fillStyle='#fff';
+          } else {
+            ctx.fillStyle = o.color;
+          }
+          ctx.fillText(dt, dx, ly);
+          dx += ctx.measureText(seg.text).width;
+          gci += seg.text.length;
         }
-        const sw = ctx.measureText(dt).width;
-        if (seg.hl && dt.length > 0) {
-          ctx.save(); ctx.shadowBlur=0;
-          ctx.fillStyle=o.hlColor; ctx.globalAlpha*=0.92;
-          ctx.beginPath(); ctx.roundRect(dx-6,ly-3,sw+12,sfs*1.2+6,6); ctx.fill();
-          ctx.restore();
-          ctx.fillStyle='#fff';
-        } else ctx.fillStyle = o.color;
-        ctx.fillText(dt, dx, ly);
-        dx += ctx.measureText(seg.text).width;
-        gci += seg.text.length;
       }
+    } finally {
+      ctx.restore();
     }
-    ctx.restore();
   }
 
   _accentLineH(ctx, scene, lt, x, y, w) {
     const p = AnimationEngine.ease(Math.max(0,Math.min(1,(lt-0.8)/0.6)));
     if (p <= 0) return;
-    ctx.save(); ctx.globalAlpha *= p;
-    ctx.fillStyle = scene.highlightColor||'#ff6b35';
-    ctx.beginPath(); ctx.roundRect(x, y, w*p, 4, 2); ctx.fill();
-    ctx.restore();
+    ctx.save();
+    try {
+      ctx.globalAlpha *= p;
+      ctx.fillStyle = scene.highlightColor||'#ff6b35';
+      const aOx = scene.accentOffsetX || 0;
+      const aOy = scene.accentOffsetY || 0;
+      ctx.beginPath(); ctx.roundRect(x + aOx, y + aOy, w*p, 4, 2); ctx.fill();
+    } finally {
+      ctx.restore();
+    }
   }
 
   /* ========== PLAYBACK ========== */

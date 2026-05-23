@@ -14,7 +14,7 @@
       titleLine1: '', titleLine1Color: '#1a2744', titleLine1Align: 'center', titleLine1Size: 60,
       titleLine2: '', titleLine2Color: '#1a2744', titleLine2Align: 'center', titleLine2Size: 60,
       titleLine3: '', titleLine3Color: '#1a2744', titleLine3Align: 'center', titleLine3Size: 48,
-      content: '',
+      content: '', contentAlign: 'center',
       imageSrc: null, imageObj: null,
       imagePosition: 'fullscreen', imageScale: 100,
       imageOffsetX: 0, imageOffsetY: 0,
@@ -24,7 +24,8 @@
       imageAnimation: 'fadeIn', sceneTransition: 'fade',
       titleFont: 'Be Vietnam Pro',
       contentFont: 'Inter', contentSize: 30, contentColor: '#333333', contentItalic: false,
-      showAccent: true, showPageCounter: false, highlightColor: '#d4622b', textPosition: 'top',
+      showAccent: true, accentOffsetX: 0, accentOffsetY: 0, showPageCounter: false, highlightColor: '#d4622b', 
+      textPosition: 'top', textOffsetX: 0, textOffsetY: 0,
       titleDelay: 0.3, titleAnimDur: 0.7,
       contentDelay: 0.9, contentAnimDur: 0.8,
     };
@@ -38,7 +39,7 @@
     titleLine1: $('#titleLine1'), titleLine1Color: $('#titleLine1Color'), titleLine1Align: $('#titleLine1Align'), titleLine1Size: $('#titleLine1Size'), titleLine1SizeVal: $('#titleLine1SizeVal'),
     titleLine2: $('#titleLine2'), titleLine2Color: $('#titleLine2Color'), titleLine2Align: $('#titleLine2Align'), titleLine2Size: $('#titleLine2Size'), titleLine2SizeVal: $('#titleLine2SizeVal'),
     titleLine3: $('#titleLine3'), titleLine3Color: $('#titleLine3Color'), titleLine3Align: $('#titleLine3Align'), titleLine3Size: $('#titleLine3Size'), titleLine3SizeVal: $('#titleLine3SizeVal'),
-    sceneContent: $('#sceneContent'),
+    sceneContent: $('#sceneContent'), contentAlign: $('#contentAlign'),
     sceneImage: $('#sceneImage'), imageUploadArea: $('#imageUploadArea'),
     uploadPlaceholder: $('#uploadPlaceholder'),
     imagePreview: $('#imagePreview'), btnRemoveImage: $('#btnRemoveImage'),
@@ -49,9 +50,15 @@
     imageOffsetGroup: $('#imageOffsetGroup'), btnResetImageOffset: $('#btnResetImageOffset'),
     sceneBgColor1: $('#sceneBgColor1'), sceneBgColor2: $('#sceneBgColor2'),
     sceneBgGradient: $('#sceneBgGradient'),
-    showAccent: $('#showAccent'), showPageCounter: $('#showPageCounter'),
+    showAccent: $('#showAccent'), 
+    accentOffsetX: $('#accentOffsetX'), accentOffsetXVal: $('#accentOffsetXVal'),
+    accentOffsetY: $('#accentOffsetY'), accentOffsetYVal: $('#accentOffsetYVal'),
+    showPageCounter: $('#showPageCounter'),
     highlightColor: $('#highlightColor'), contentItalic: $('#contentItalic'),
     textPosition: $('#textPosition'),
+    textOffsetX: $('#textOffsetX'), textOffsetXVal: $('#textOffsetXVal'),
+    textOffsetY: $('#textOffsetY'), textOffsetYVal: $('#textOffsetYVal'),
+    btnResetTextOffset: $('#btnResetTextOffset'),
     sceneDuration: $('#sceneDuration'), durationValue: $('#durationValue'),
     titleAnimation: $('#titleAnimation'), contentAnimation: $('#contentAnimation'),
     imageAnimation: $('#imageAnimation'), sceneTransition: $('#sceneTransition'),
@@ -167,6 +174,7 @@
     els.titleLine3Size.value = sc.titleLine3Size || 48;
     els.titleLine3SizeVal.textContent = sc.titleLine3Size || 48;
     els.sceneContent.value = sc.content;
+    els.contentAlign.value = sc.contentAlign || 'center';
 
     els.imagePosition.value = sc.imagePosition || 'fullscreen';
     els.imageScale.value = sc.imageScale || 100;
@@ -180,10 +188,14 @@
     els.sceneBgColor2.value = sc.bgColor2;
     els.sceneBgGradient.checked = sc.bgGradient;
     els.showAccent.checked = !!sc.showAccent;
+    els.accentOffsetX.value = sc.accentOffsetX || 0; els.accentOffsetXVal.textContent = sc.accentOffsetX || 0;
+    els.accentOffsetY.value = sc.accentOffsetY || 0; els.accentOffsetYVal.textContent = sc.accentOffsetY || 0;
     els.showPageCounter.checked = !!sc.showPageCounter;
     els.highlightColor.value = sc.highlightColor || '#d4622b';
     els.contentItalic.checked = !!sc.contentItalic;
     els.textPosition.value = sc.textPosition || 'top';
+    els.textOffsetX.value = sc.textOffsetX || 0; els.textOffsetXVal.textContent = sc.textOffsetX || 0;
+    els.textOffsetY.value = sc.textOffsetY || 0; els.textOffsetYVal.textContent = sc.textOffsetY || 0;
     els.sceneDuration.value = sc.duration;
     els.durationValue.textContent = sc.duration;
     els.titleAnimation.value = sc.titleAnimation;
@@ -377,6 +389,7 @@
     els.titleLine1Align.onchange = () => updateScene('titleLine1Align', els.titleLine1Align.value);
     els.titleLine2Align.onchange = () => updateScene('titleLine2Align', els.titleLine2Align.value);
     els.titleLine3Align.onchange = () => updateScene('titleLine3Align', els.titleLine3Align.value);
+    els.contentAlign.onchange = () => updateScene('contentAlign', els.contentAlign.value);
 
     // Background
     els.sceneBgColor1.oninput = () => updateScene('bgColor1', els.sceneBgColor1.value);
@@ -385,10 +398,19 @@
 
     // Decoration
     els.showAccent.onchange = () => updateScene('showAccent', els.showAccent.checked);
+    els.accentOffsetX.oninput = () => { els.accentOffsetXVal.textContent = els.accentOffsetX.value; updateScene('accentOffsetX', parseInt(els.accentOffsetX.value)); };
+    els.accentOffsetY.oninput = () => { els.accentOffsetYVal.textContent = els.accentOffsetY.value; updateScene('accentOffsetY', parseInt(els.accentOffsetY.value)); };
     els.showPageCounter.onchange = () => updateScene('showPageCounter', els.showPageCounter.checked);
     els.highlightColor.oninput = () => updateScene('highlightColor', els.highlightColor.value);
     els.contentItalic.onchange = () => updateScene('contentItalic', els.contentItalic.checked);
     els.textPosition.onchange = () => updateScene('textPosition', els.textPosition.value);
+    
+    els.textOffsetX.oninput = () => { els.textOffsetXVal.textContent = els.textOffsetX.value; updateScene('textOffsetX', parseInt(els.textOffsetX.value)); };
+    els.textOffsetY.oninput = () => { els.textOffsetYVal.textContent = els.textOffsetY.value; updateScene('textOffsetY', parseInt(els.textOffsetY.value)); };
+    els.btnResetTextOffset.onclick = () => {
+      els.textOffsetX.value = 0; els.textOffsetXVal.textContent = 0; updateScene('textOffsetX', 0);
+      els.textOffsetY.value = 0; els.textOffsetYVal.textContent = 0; updateScene('textOffsetY', 0);
+    };
 
     // Duration
     els.sceneDuration.oninput = () => {
