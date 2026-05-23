@@ -16,24 +16,32 @@ Mở trình duyệt **Chrome** hoặc **Edge** tại:
 http://localhost:3000
 ```
 
-## Tính năng
+## Tính năng nổi bật
 
-- 🎞️ Tạo nhiều cảnh (scene), mỗi cảnh có tiêu đề, nội dung, hình ảnh
-- 🎨 Chỉnh màu, kích cỡ, vị trí text (trên / giữa)
-- 📐 Video dọc 9:16 mặc định (TikTok/Reels), hỗ trợ vuông và ngang
-- ➖ Đường accent trang trí dưới tiêu đề
-- ▶️ Xem trước animation realtime
-- 📥 Xuất video MP4
+- 🎞️ **Cảnh quay đa dạng**: Tạo nhiều cảnh, tùy chỉnh linh hoạt từng cảnh.
+- 🎨 **Thiết kế Editorial**: 
+  - Hỗ trợ **3 dòng tiêu đề độc lập** (chỉnh riêng cỡ chữ, màu sắc, canh lề).
+  - Cú pháp Highlight: bọc từ trong `*dấu sao*` để đổi màu nhấn (Highlight Color).
+  - Tùy chọn hiển thị **Số trang (vd: 1/10)**, chữ nghiêng (Italic) cho nội dung, và đường kẻ Accent chuyên nghiệp.
+- 🖼️ **Xử lý hình ảnh nâng cao**:
+  - Tùy chọn vị trí ảnh: Toàn màn hình (nền), Trên, Giữa, Dưới, hoặc Dưới nội dung.
+  - Hỗ trợ Kéo to/nhỏ (Scale) và Tịnh tiến vị trí (Offset X/Y).
+- ⏱️ **Kiểm soát thời gian (Timing)**: Chỉnh thời gian bắt đầu (Delay) và thời lượng (Duration) hiệu ứng riêng cho Tiêu đề và Nội dung.
+- 🎬 **Giao diện chuẩn Production**: Giao diện Light Theme hiện đại, sạch sẽ. Canvas mặc định với nền trắng giúp hiển thị văn bản tối ưu.
+- ▶️ **Render Realtime**: Xem trước video ngay lập tức không cần tải trang.
+- 📥 **Xuất Video MP4**: Hỗ trợ xuất MP4 phần cứng tốc độ cao qua WebCodecs (TikTok, Facebook, YouTube).
 
-### Hiệu ứng Animation
+### Hiệu ứng Animation (12+ loại)
 
-- Mờ dần (Fade In)
-- Trượt lên / xuống / từ phải
+- Mờ dần (Fade In), Mờ → Rõ (Blur In)
+- Trượt lên / xuống / từ trái / từ phải
 - Phóng to (Scale In)
+- Nẩy vào (Bounce In), Xoay vào (Rotate In), Lật vào (Flip In)
 - Đánh máy (Typewriter)
-- Ken Burns (cho hình ảnh)
+- Glitch (Hiệu ứng nhiễu điện tử)
+- Ken Burns (Hiệu ứng thu phóng cho hình ảnh)
 
-### Độ phân giải
+### Độ phân giải hỗ trợ
 
 | Tên | Kích thước | Dùng cho |
 |-----|-----------|----------|
@@ -44,16 +52,14 @@ http://localhost:3000
 
 ## Cách sử dụng
 
-1. Bấm **+** để thêm cảnh
-2. Nhập tiêu đề, nội dung, upload hình ảnh
-3. Chỉnh màu, cỡ chữ, vị trí text, hiệu ứng animation
-4. Bấm **▶ Xem trước** (hoặc phím Space)
-5. Bấm **Xuất MP4** → chờ render → **Tải về**
-
-## Layout
-
-- **Text ở trên** (căn lề trên), ảnh ở dưới
-- Chọn "Vị trí text" → Giữa nếu muốn căn giữa
+1. **Thêm cảnh**: Bấm **+** để thêm một phân cảnh mới.
+2. **Thiết kế Tiêu đề**: 
+   - Nhập tối đa 3 dòng tiêu đề. Có thể dùng `*từ khóa*` để tô màu highlight.
+   - Trượt thanh cỡ chữ, đổi màu và căn lề độc lập cho từng dòng.
+3. **Thêm Nội dung & Ảnh**: Nhập text nội dung, tải ảnh lên và chọn vị trí/kích cỡ phù hợp.
+4. **Hiệu ứng & Thời gian**: Chọn kiểu chuyển cảnh, animation, và tinh chỉnh thanh trượt độ trễ/thời lượng.
+5. **Xem trước**: Bấm **▶ Xem trước** hoặc nhấn phím **Space**.
+6. **Xuất file**: Bấm **Xuất MP4** → chờ xử lý → **Tải về**.
 
 ## Phím tắt
 
@@ -67,9 +73,9 @@ http://localhost:3000
 ```
 AI Video/
 ├── index.html      # Giao diện HTML
-├── style.css       # Dark theme styling
-├── engine.js       # Canvas animation engine
-├── exporter.js     # MP4 export (WebCodecs + mp4-muxer)
-├── app.js          # Logic ứng dụng
-└── README.md       # File này
+├── style.css       # Light theme & styling
+├── engine.js       # Canvas animation & layout engine
+├── exporter.js     # MP4/WebM export (WebCodecs + mp4-muxer)
+├── app.js          # Logic ứng dụng, state management
+└── README.md       # File tài liệu
 ```

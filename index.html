@@ -43,9 +43,56 @@
       <div class="panel-section scene-editor-section">
         <h2>Chỉnh sửa cảnh</h2>
 
+        <!-- 3 Title Lines -->
         <div class="form-group">
-          <label for="sceneTitle">Tiêu đề</label>
-          <input type="text" id="sceneTitle" placeholder="Nhập tiêu đề..." autocomplete="off">
+          <label>Tiêu đề dòng 1</label>
+          <input type="text" id="titleLine1" placeholder="Dòng tiêu đề 1..." autocomplete="off">
+          <div class="inline-row" style="margin-top:6px;">
+            <input type="color" id="titleLine1Color" value="#ffffff" title="Màu dòng 1">
+            <select id="titleLine1Align" class="mini-select" title="Canh lề dòng 1">
+              <option value="center">Giữa</option>
+              <option value="left">Trái</option>
+              <option value="right">Phải</option>
+            </select>
+          </div>
+          <div class="inline-row" style="margin-top:4px;">
+            <label class="mini-label">Cỡ: <span id="titleLine1SizeVal">60</span>px</label>
+            <input type="range" id="titleLine1Size" min="24" max="120" value="60" style="flex:1">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tiêu đề dòng 2</label>
+          <input type="text" id="titleLine2" placeholder="Dòng tiêu đề 2..." autocomplete="off">
+          <div class="inline-row" style="margin-top:6px;">
+            <input type="color" id="titleLine2Color" value="#00d4ff" title="Màu dòng 2">
+            <select id="titleLine2Align" class="mini-select" title="Canh lề dòng 2">
+              <option value="center">Giữa</option>
+              <option value="left">Trái</option>
+              <option value="right">Phải</option>
+            </select>
+          </div>
+          <div class="inline-row" style="margin-top:4px;">
+            <label class="mini-label">Cỡ: <span id="titleLine2SizeVal">60</span>px</label>
+            <input type="range" id="titleLine2Size" min="24" max="120" value="60" style="flex:1">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tiêu đề dòng 3</label>
+          <input type="text" id="titleLine3" placeholder="Dòng tiêu đề 3..." autocomplete="off">
+          <div class="inline-row" style="margin-top:6px;">
+            <input type="color" id="titleLine3Color" value="#ff8844" title="Màu dòng 3">
+            <select id="titleLine3Align" class="mini-select" title="Canh lề dòng 3">
+              <option value="center">Giữa</option>
+              <option value="left">Trái</option>
+              <option value="right">Phải</option>
+            </select>
+          </div>
+          <div class="inline-row" style="margin-top:4px;">
+            <label class="mini-label">Cỡ: <span id="titleLine3SizeVal">48</span>px</label>
+            <input type="range" id="titleLine3Size" min="24" max="120" value="48" style="flex:1">
+          </div>
         </div>
 
         <div class="form-group">
@@ -53,6 +100,7 @@
           <textarea id="sceneContent" rows="4" placeholder="Nhập nội dung văn bản..."></textarea>
         </div>
 
+        <!-- Image Upload & Controls -->
         <div class="form-group">
           <label>Hình ảnh</label>
           <div class="image-upload" id="imageUploadArea">
@@ -66,6 +114,39 @@
           </div>
         </div>
 
+        <!-- Image Position -->
+        <div class="form-group" id="imagePositionGroup" style="display:none;">
+          <label for="imagePosition">Vị trí hiển thị ảnh</label>
+          <select id="imagePosition">
+            <option value="below">Dưới nội dung</option>
+            <option value="top">Trên (nửa trên)</option>
+            <option value="center">Giữa</option>
+            <option value="bottom">Dưới</option>
+            <option value="fullscreen" selected>Toàn màn hình (nền)</option>
+          </select>
+        </div>
+
+        <!-- Image Scale -->
+        <div class="form-group" id="imageScaleGroup" style="display:none;">
+          <label>Kích thước ảnh: <span id="imageScaleVal">100</span>%</label>
+          <input type="range" id="imageScale" min="20" max="300" value="100" step="5">
+        </div>
+
+        <!-- Image Offset (Drag) -->
+        <div class="form-group" id="imageOffsetGroup" style="display:none;">
+          <label>Dịch vị trí ảnh</label>
+          <div class="inline-row">
+            <label class="mini-label">X: <span id="imageOffsetXVal">0</span></label>
+            <input type="range" id="imageOffsetX" min="-500" max="500" value="0" step="5">
+          </div>
+          <div class="inline-row" style="margin-top:4px;">
+            <label class="mini-label">Y: <span id="imageOffsetYVal">0</span></label>
+            <input type="range" id="imageOffsetY" min="-500" max="500" value="0" step="5">
+          </div>
+          <button id="btnResetImageOffset" class="btn btn-ghost btn-sm" style="margin-top:6px;">Reset vị trí</button>
+        </div>
+
+        <!-- Background Colors -->
         <div class="form-group">
           <label>Màu nền</label>
           <div class="color-row">
@@ -84,10 +165,28 @@
         </div>
 
         <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="showPageCounter"> Số trang (1/10)
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Màu highlight (dùng *text*)</label>
+          <input type="color" id="highlightColor" value="#d4622b">
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="contentItalic"> Nội dung in nghiêng
+          </label>
+        </div>
+
+        <div class="form-group">
           <label for="textPosition">Vị trí text</label>
           <select id="textPosition">
             <option value="top" selected>Trên (căn lề trên)</option>
             <option value="center">Giữa</option>
+            <option value="bottom">Dưới</option>
           </select>
         </div>
 
@@ -132,8 +231,14 @@
             <option value="slideUp" selected>Trượt lên</option>
             <option value="slideDown">Trượt xuống</option>
             <option value="slideLeft">Trượt từ phải</option>
+            <option value="slideRight">Trượt từ trái</option>
             <option value="scaleIn">Phóng to</option>
+            <option value="bounceIn">Nẩy vào</option>
+            <option value="rotateIn">Xoay vào</option>
+            <option value="flipIn">Lật vào</option>
+            <option value="blurIn">Mờ → Rõ</option>
             <option value="typewriter">Đánh máy</option>
+            <option value="glitchIn">Glitch</option>
           </select>
         </div>
 
@@ -144,8 +249,32 @@
             <option value="slideUp">Trượt lên</option>
             <option value="slideDown">Trượt xuống</option>
             <option value="slideLeft">Trượt từ phải</option>
+            <option value="slideRight">Trượt từ trái</option>
+            <option value="scaleIn">Phóng to</option>
+            <option value="bounceIn">Nẩy vào</option>
+            <option value="blurIn">Mờ → Rõ</option>
             <option value="typewriter">Đánh máy</option>
           </select>
+        </div>
+
+        <!-- Animation Timing for Content -->
+        <div class="form-group">
+          <label>Thời gian bắt đầu nội dung: <span id="contentDelayVal">0.9</span>s</label>
+          <input type="range" id="contentDelay" min="0" max="5" step="0.1" value="0.9">
+        </div>
+        <div class="form-group">
+          <label>Thời lượng hiệu ứng nội dung: <span id="contentAnimDurVal">0.8</span>s</label>
+          <input type="range" id="contentAnimDur" min="0.2" max="5" step="0.1" value="0.8">
+        </div>
+
+        <!-- Animation Timing for Title -->
+        <div class="form-group">
+          <label>Thời gian bắt đầu tiêu đề: <span id="titleDelayVal">0.3</span>s</label>
+          <input type="range" id="titleDelay" min="0" max="5" step="0.1" value="0.3">
+        </div>
+        <div class="form-group">
+          <label>Thời lượng hiệu ứng tiêu đề: <span id="titleAnimDurVal">0.7</span>s</label>
+          <input type="range" id="titleAnimDur" min="0.2" max="5" step="0.1" value="0.7">
         </div>
 
         <div class="form-group">
@@ -156,6 +285,8 @@
             <option value="slideUp">Trượt lên</option>
             <option value="slideLeft">Trượt từ phải</option>
             <option value="kenBurns">Ken Burns</option>
+            <option value="bounceIn">Nẩy vào</option>
+            <option value="blurIn">Mờ → Rõ</option>
           </select>
         </div>
 
@@ -181,14 +312,7 @@
             <option value="Arial">Arial</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Cỡ tiêu đề: <span id="titleSizeVal">60</span>px</label>
-          <input type="range" id="titleSize" min="24" max="120" value="60">
-        </div>
-        <div class="form-group">
-          <label for="titleColor">Màu tiêu đề</label>
-          <input type="color" id="titleColor" value="#ffffff">
-        </div>
+
 
         <div class="form-group">
           <label for="contentFont">Font nội dung</label>
